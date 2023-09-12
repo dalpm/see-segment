@@ -392,13 +392,15 @@ def FF_Gamma(inferred, ground_truth):
     M = ground_truth.shape[0]
     N = ground_truth.shape[1]
 
-    def f(u, v): return u + v - (2 * u * v)
-    hamming = 0
+    def f(u, v):
+        return u + v - (2 * u * v)
+
+    double_sum = 0
     for r in range(M):
         for c in range(N):
-            hamming += ground_truth[r, c] != inferred[r, c]
+            double_sum += f(ground_truth[r, c], inferred[r,c])
 
-    gamma = np.abs(1 - (2 * hamming / (M * N)))
+    gamma = np.abs(1 - (2 * double_sum / (M * N)))
 
     return [1 - gamma, ]
 
