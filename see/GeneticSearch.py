@@ -322,8 +322,8 @@ class Evolver(object):
         # Loop though outputs and add them to ind.fitness so we have a complete
         # record.
         for ind, data in zip(tpop, outdata):
-            print(f"p_fitness={data.fitness}\n")
-            ind.fitness.values = [data.fitness]
+            print(f"p_fitness={data.fitness[0]},madlad={data.fitness[1]}, lad={data.fitness[2]}, gamma={data.fitness[3]}\n")
+            ind.fitness.values = [data.fitness[0]]
         extract_fits = [ind.fitness.values[-1] for ind in tpop]
 
         #print(tpop)

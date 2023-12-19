@@ -87,7 +87,7 @@ def countsets(setcounts):
         # L_sets.add(g_key)
         L_sets.add(mx_key)  # add the g_key we consider to be correct
         # best[i_key] = g_key
-        best[i_key] = mx_key  # record "true" mapping
+        best[i_key] = mx_key  # record "" mapping
     L = len(L_sets)
     return total - p, L, best
 
@@ -330,12 +330,11 @@ def FF_ML2DHD(inferred, ground_truth):
 
 
 def FF_Hamming(inferred, ground_truth):
-    """Compute the fitness for an individual.
+    """Compute the Hamming distance.
 
-    Takes in two images and compares
-    them according to the equation (p + 2)^log(|m - n| + 2), where p is the pixel
-    error, m is the number of segments in the inferred mask, and n is the number
-    of segments in the ground truth mask.
+    Takes in inferred array and the ground truth array.
+    Returns the Hamming Distance, unmatched pixels divided by the
+    total pixel count.
 
     Keyword arguments:
     inferred -- Resulting segmentation mask from individual.
@@ -364,12 +363,9 @@ def FF_Hamming(inferred, ground_truth):
 
 
 def FF_Gamma(inferred, ground_truth):
-    """Compute the fitness for an individual.
+    """Compute the fitness for an individual using The Gamma Binary Similarity Measure.
 
-    Takes in two images and compares
-    them according to the equation (p + 2)^log(|m - n| + 2), where p is the pixel
-    error, m is the number of segments in the inferred mask, and n is the number
-    of segments in the ground truth mask.
+    Takes in two binary labeled arrays.
 
     Keyword arguments:
     inferred -- Resulting segmentation mask from individual.
@@ -403,6 +399,46 @@ def FF_Gamma(inferred, ground_truth):
     gamma = np.abs(1 - (2 * double_sum / (M * N)))
 
     return [1 - gamma, ]
+
+def FF_RegionMapping(inferred, ground_truth):
+    """
+    Computes region metric painting.
+    """
+    set_count, _, __  = countMatches(inferred, ground_truth)
+    p, _, __ = countsets(set_count)
+    M = ground_truth.shape[0]
+    N = ground_truth.shape[1]
+    return p/(M*N)
+
+def FF_LAD(inferred, ground_truth):
+    """
+    Computes the Labeled Array Distance.
+    Takes into account the total number of labels in both the ground truth and the comparison
+    labeled array.
+    """
+    _, num_label_inferred, num_label_gt = countMatches(inferred, ground_truth)
+    set_count, _, __  = countMatches(inferred, ground_truth)
+    p, _, __ = countsets(set_count)
+    M = ground_truth.shape[0]
+    N = ground_truth.shape[1]
+    lad = (p + abs(num_label_gt - num_label_inferred))/(M*N)
+    return lad
+
+def FF_MADLAD(inferred, ground_truth):
+    """
+    Computes the Labeled Array Distance.
+    Takes into account the total number of labels in both the ground truth and the comparison
+    labeled array.
+    """
+    _, num_label_inferred, num_label_gt = countMatches(inferred, ground_truth)
+    set_count, _, __  = countMatches(inferred, ground_truth)
+    diff = num_label_gt - num_label_inferred
+    p, _, __ = countsets(set_count)
+    M = ground_truth.shape[0]
+    N = ground_truth.shape[1]
+    madlad = ((p/(M*N)) + abs(diff)/(num_label_gt + num_label_inferred))**(1-(abs(diff)/(num_label_gt + num_label_inferred)))
+
+    return madlad
 
 
 def FF_ML2DHD(inferred, ground_truth):
@@ -489,9 +525,10 @@ def FF_ML2DHD_V2(inferred, ground_truth):
         test.add(best[key])
 
     if len(test) == 1:
-        # Trivial Solution
-        #print(f"trivial solution")
-        #ERROR - Length of test is only 1
+        # Trivial Solution - Only one label is detected
+        # in the image, bad solution
+        # print(f"trivial solution")
+        # ERROR - Length of test is only 1
         error = 1.5
     else:
         error = (p / TP + np.abs(n - m) / (n + m)
@@ -519,7 +556,7 @@ def multi_value_ff(data):
         fitness_value = FitnessFunction(data[i][-1], data.gtruth[i])[0]
         fitness_values_arr = np.append(fitness_values_arr, fitness_value)
     mean_fitness_value = np.mean(fitness_values_arr)
-    return mean_fitness_value
+    return [mean_fitness_value, FF_MADLAD(data[0][-1], data.gtruth[0]), FF_LAD(data[0][-1], data.gtruth[0]), FF_Gamma(data[0][-1], data.gtruth[0])[0]]
 
 
 class segment_fitness(algorithm):
